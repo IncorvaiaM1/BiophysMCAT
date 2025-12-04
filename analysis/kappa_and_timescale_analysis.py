@@ -285,9 +285,13 @@ def analyze_2d_phase_diagram(N_values=None, B_values=None, T=20.0):
         {'N': [...], 'B': [...], 'S': [...], 'grid': 2D array}
     """
     if N_values is None:
-        N_values = [15, 25, 50, 75, 100, 200, 500, 1000, 2000]
+        # Original smaller range for testing:
+        # N_values = [15, 25, 50, 75, 100, 200, 500, 1000, 2000]
+        # Expanded range to explore bioreactor mixing and microfluidic valve regimes:
+        N_values = [100, 500, 1000, 2000, 5000, 10000, 15000, 20000]
     if B_values is None:
-        B_values = np.linspace(0, 30, 7)  # 0 to 30 mT
+        # Full sweep across all magnetic fields up to 30 mT (11 points)
+        B_values = np.linspace(0, 30, 11)  # 0 to 30 mT, 11 points
     
     print(f"\n{'='*70}")
     print("ANALYSIS 2: 2D Phase Diagram (Density vs Field Strength)")
@@ -487,9 +491,12 @@ def main():
     
     # Analysis 2: 2D Phase Diagram
     print("\n[2/3] ANALYSIS 2: 2D Phase Diagram (N vs B)")
+    # Commented out old smaller range:
+    # N_values=[100, 300, 500, 1000, 2000],
+    # B_values=np.linspace(0, 30, 7),
     phase_results = analyze_2d_phase_diagram(
-        N_values=[100, 300, 500, 1000, 2000],
-        B_values=np.linspace(0, 30, 7),
+        N_values=[100, 500, 1000, 2000, 5000, 10000, 15000, 20000],
+        B_values=np.linspace(0, 30, 11),  # Full range 0-30 mT with 11 points
         T=20.0
     )
     plot_2d_phase_diagram(phase_results)
