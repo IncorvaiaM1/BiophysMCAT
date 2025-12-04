@@ -1,0 +1,212 @@
+[
+  {
+    "params": {
+      "kappa": 0.0,
+      "B": 0.0,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 42
+    },
+    "final_nematic_order": 0.03545376209625005,
+    "final_polar_order": 0.06859033652128801,
+    "final_velocity_variance": 223.80411547872484,
+    "std_nematic_order": 0.02074478369671246
+  },
+  {
+    "params": {
+      "kappa": 0.7142857142857143,
+      "B": 8.451542547285166,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 43
+    },
+    "final_nematic_order": 0.30953230722720954,
+    "final_polar_order": 0.703917322448147,
+    "final_velocity_variance": 113.472604148519,
+    "std_nematic_order": 0.016530079129116436
+  },
+  {
+    "params": {
+      "kappa": 1.4285714285714286,
+      "B": 11.952286093343936,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 44
+    },
+    "final_nematic_order": 0.5279275857278161,
+    "final_polar_order": 0.8442408910525152,
+    "final_velocity_variance": 64.61189934775257,
+    "std_nematic_order": 0.02038252469927069
+  },
+  {
+    "params": {
+      "kappa": 2.142857142857143,
+      "B": 14.638501094227998,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 45
+    },
+    "final_nematic_order": 0.6556414351431903,
+    "final_polar_order": 0.8989328114863149,
+    "final_velocity_variance": 43.17383024099519,
+    "std_nematic_order": 0.01532349640694956
+  },
+  {
+    "params": {
+      "kappa": 2.857142857142857,
+      "B": 16.903085094570333,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 46
+    },
+    "final_nematic_order": 0.710592384472246,
+    "final_polar_order": 0.9180306051545398,
+    "final_velocity_variance": 35.37059072983364,
+    "std_nematic_order": 0.01386499713010473
+  },
+  {
+    "params": {
+      "kappa": 3.5714285714285716,
+      "B": 18.89822365046136,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 47
+    },
+    "final_nematic_order": 0.7575396448319152,
+    "final_polar_order": 0.9324709250047957,
+    "final_velocity_variance": 29.359666095097428,
+    "std_nematic_order": 0.010325756589910584
+  },
+  {
+    "params": {
+      "kappa": 4.285714285714286,
+      "B": 20.701966780270627,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 48
+    },
+    "final_nematic_order": 0.8004156422229893,
+    "final_polar_order": 0.9458267038744465,
+    "final_velocity_variance": 23.715939265034855,
+    "std_nematic_order": 0.00970889874817952
+  },
+  {
+    "params": {
+      "kappa": 5.0,
+      "B": 22.360679774997898,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 49
+    },
+    "final_nematic_order": 0.8236918346722119,
+    "final_polar_order": 0.9523462819812636,
+    "final_velocity_variance": 20.931171686134956,
+    "std_nematic_order": 0.010941269741268442
+  },
+  {
+    "params": {
+      "kappa": 5.714285714285714,
+      "B": 23.904572186687872,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 50
+    },
+    "final_nematic_order": 0.8469757322024384,
+    "final_polar_order": 0.9593360785159171,
+    "final_velocity_variance": 17.924909024194164,
+    "std_nematic_order": 0.010103025787160798
+  },
+  {
+    "params": {
+      "kappa": 6.428571428571429,
+      "B": 25.354627641855497,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 51
+    },
+    "final_nematic_order": 0.8533095781281064,
+    "final_polar_order": 0.9610493776357797,
+    "final_velocity_variance": 17.184196671742026,
+    "std_nematic_order": 0.011208406140184505
+  },
+  {
+    "params": {
+      "kappa": 7.142857142857143,
+      "B": 26.72612419124244,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 52
+    },
+    "final_nematic_order": 0.8682120976712444,
+    "final_polar_order": 0.9652022655897119,
+    "final_velocity_variance": 15.386423207797876,
+    "std_nematic_order": 0.0028687594484694524
+  },
+  {
+    "params": {
+      "kappa": 7.857142857142858,
+      "B": 28.030595529069405,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 53
+    },
+    "final_nematic_order": 0.8849303515667298,
+    "final_polar_order": 0.9698705816114863,
+    "final_velocity_variance": 13.353693240025331,
+    "std_nematic_order": 0.0041167421011952966
+  },
+  {
+    "params": {
+      "kappa": 8.571428571428571,
+      "B": 29.277002188455995,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 54
+    },
+    "final_nematic_order": 0.8882520122116997,
+    "final_polar_order": 0.9707907997344353,
+    "final_velocity_variance": 12.951888769569887,
+    "std_nematic_order": 0.004015368706954646
+  },
+  {
+    "params": {
+      "kappa": 9.285714285714286,
+      "B": 30.472470011002205,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 55
+    },
+    "final_nematic_order": 0.8978469046660331,
+    "final_polar_order": 0.9733348900186576,
+    "final_velocity_variance": 11.83836874181578,
+    "std_nematic_order": 0.007413680585321387
+  },
+  {
+    "params": {
+      "kappa": 10.0,
+      "B": 31.622776601683793,
+      "N": 500,
+      "omega_align": 0.5,
+      "R_align": 10.0,
+      "seed": 56
+    },
+    "final_nematic_order": 0.8995149555129864,
+    "final_polar_order": 0.9738302407748103,
+    "final_velocity_variance": 11.620514451695248,
+    "std_nematic_order": 0.010234768564969984
+  }
+]

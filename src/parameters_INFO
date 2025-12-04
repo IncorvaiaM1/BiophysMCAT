@@ -1,0 +1,149 @@
+parameters2.py - Parameters & Helpers (INFO)
+
+Purpose
+-------
+This file documents the configuration values, helper functions, and application windows defined in `src/parameters2.py`.
+The module centralizes physical constants, simulation settings, density/field sweep ranges, biological conversions, growth
+models, and application-specific parameter windows used throughout the MCAT codebase.
+
+High-level structure
+--------------------
+- PHYSICAL: Physical parameters (v0, diffusion, interaction ranges and strengths, bacterial dimensions, kappa prefactor)
+- SIMULATION: Basic simulation settings (dt, box size L, default N, random seed)
+- MAGNETIC_FIELDS: Suggested lists of B values for sweeps (coarse, fine, transition-focused)
+- DENSITY_RANGES: Recommended particle counts for sweeps and biological density mapping
+- GROWTH: Doubling times and growth-rate constants
+- APPLICATIONS: Use-case parameter windows (density range, phi range, B_max, response time)
+- EXPERIMENTAL_DENSITIES & TYPICAL_DENSITIES: Example literature values to map experiments to simulations
+- Helper functions: conversions and utilities used by analysis scripts
+
+PHYSICAL (what to edit if you recalibrate physics)
+--------------------------------------------------
+- `v0`: Self-propulsion speed (μm/s). Default 15.0 based on Bacillus subtilis-like swimmers.
+- `D_r`, `D_t`: Rotational and translational diffusion coefficients.
+- `R_align`, `R_rep`: Interaction ranges for nematic alignment and soft repulsion.
+- `omega_align`, `F_rep`: Interaction strengths for alignment and repulsion.
+- `kappa_prefactor`: Magnetic calibration used to compute κ from B: κ = kappa_prefactor × B².
+- `L_bacteria`, `R_bacteria`: Bacterial size used for area-fraction (φ) calculations.
+
+SIMULATION (default runtime settings)
+------------------------------------
+- `dt`: Integration timestep (s). Smaller dt → more accurate but slower.
+- `L`: Box size (μm) used for 2D periodic simulations.
+- `N_default`: Default particle count used by quick examples.
+- `seed`: Default RNG seed for reproducibility.
+
+MAGNETIC_FIELDS
+---------------
+- `B_sweep`: Coarse sweep for quick exploratory runs: [0, 5, 10, 15, 20, 25, 30] (mT)
+- `B_fine`: Fine sweep (0..30 in 1 mT increments) for detailed curves
+- `B_transition`: Focus on suspected transition region (10..25 mT)
+
+DENSITY_RANGES
+--------------
+- `N_sweep`: Common particle counts used in analysis and phase-diagrams
+- `N_phase_diagram`: A finer set for constructing S(N,B) heatmaps
+- `biological_densities`: Representative cells/mL values (dilute → biofilm)
+
+Helper functions (behavior and usage)
+-------------------------------------
+1) `cells_per_ml_to_particle_count(density_cells_ml, volume_ml=1e-6)`
+   - Converts biological cell density (cells/mL) to a simulated particle count.
+   - Uses the simulation box area (L × L) and an assumed height `h ≈ 60 μm` to compute the sampled volume (μm³ → mL).
+   - Returns an integer N and ensures at least 10 particles for stability.
+   - Typical use: map literature densities (cells/mL) into `N` for simulation trials.
+
+2) `particle_count_to_area_fraction(N, L=None)`
+   - Converts particle count `N` to area fraction φ = N × π R² / L² using `R_bacteria`.
+   - If `L` is omitted, uses `SIMULATION['L']`.
+   - Typical use: plotting S vs φ, and overlaying application windows defined in `APPLICATIONS`.
+
+3) `area_fraction_to_particle_count(phi, L=None)`
+   - Inverse of the above: what particle count corresponds to a target φ.
+   - Useful when defining experiments by φ rather than N.
+
+4) `calculate_population(N0, time_minutes, doubling_time)`
+   - Exponential growth model using doublings: N(t) = N0 × 2^(t / t_double).
+   - Doubling times are available in the `GROWTH` dict and given in minutes.
+   - Use this to model how N (and thus φ) changes during growth or application scenarios.
+
+GROWTH
+------
+- `doubling_time_fast/medium/slow` (min) provide representative growth regimes.
+- `mu_fast/medium/slow` are computed growth rates (1/min) = ln(2) / t_double.
+- Use `calculate_population()` to simulate growth during analyses (e.g., how long until a culture reaches an ordered state at fixed B).
+
+APPLICATIONS (how to interpret)
+-------------------------------
+Each application entry provides a practical operating window. Fields:
+- `density_range` (cells/mL): expected biological concentration
+- `response_time_max` (s): maximum desirable actuation time for the application
+- `B_max` (mT): practical or safety-limited magnetic field amplitude
+- `phi_range`: suggested area fraction range to highlight on plots
+- `color`, `description`: plotting metadata and short description
+
+Examples (from the code):
+- `drug_delivery`: high densities (1e10–1e11 cells/mL), φ ~ 0.15–0.35, rapid response (≤10 s), B_max = 50 mT
+- `microfluidic_valve`: very high density and fast response (≤1 s), fewer human exposure constraints
+
+EXPERIMENTAL_DENSITIES & TYPICAL_DENSITIES
+-----------------------------------------
+- A small set of literature-derived densities are provided to help map experimental studies to simulation parameters
+  (e.g., wastewater microalgae densities or typical bacterial culture phases).
+- `TYPICAL_DENSITIES` gives ballpark values (early_log_phase → stationary_phase) and practical categories
+  like `skin_infection` and `biofilm` for overlay and interpretation.
+
+Utility function: `print_parameter_summary()`
+--------------------------------------------
+- Prints a quick human-readable summary of the key dictionaries and application windows.
+- Example: run `python -m src.parameters2` or call the function inside a REPL to print the summary.
+
+Examples and recommended workflows
+----------------------------------
+- Quick conversion examples (from the module `__main__`):
+  - `phi = particle_count_to_area_fraction(N=500)`
+  - `N = cells_per_ml_to_particle_count(1e10)`
+  - `Nt = calculate_population(N0=100, time_minutes=60, doubling_time=20)`
+
+- Analysis pipelines often combine helpers from `parameters2.py` with simulation runs (e.g., `MCATs1`/`MCATs3`):
+  1. Choose application window from `APPLICATIONS` (get `phi_range` and `B_max`).
+  2. Convert φ to `N` using `area_fraction_to_particle_count()`.
+  3. Run simulation at B values of interest (from `MAGNETIC_FIELDS`) to map S(φ, B).
+  4. Use `calculate_population()` to model growth-driven changes in N and repeat analyses over time.
+
+Assumptions and caveats
+-----------------------
+- The conversion from cells/mL to simulated N assumes an effective sample height `h = 60 μm`. Change this value if
+  your experimental geometry differs.
+- The kappa calibration (`kappa_prefactor`) is an empirical model; if you have calibration data, update `PHYSICAL['kappa_prefactor']`.
+- The `APPLICATIONS` windows are illustrative; verify safety constraints and biological relevance before reporting.
+
+Where to edit
+-------------
+- Tuning physics: edit the `PHYSICAL` dict (e.g., `v0`, `D_r`, `kappa_prefactor`).
+- Sweeps & ranges: edit `MAGNETIC_FIELDS` and `DENSITY_RANGES` for the parameter space you want to explore.
+- Applications: edit `APPLICATIONS` to add or refine use-cases and plotting metadata.
+
+Run examples
+------------
+From repository root (PowerShell):
+
+```powershell
+python -c "import src.parameters2 as p; p.print_parameter_summary()"
+```
+
+Or run the module directly:
+
+```powershell
+python src/parameters2.py
+```
+
+Todo / Suggested improvements
+----------------------------
+- Add a single source-of-truth for `kappa` calculation (function that returns κ for B using PHYSICAL['kappa_prefactor']).
+- Provide a small YAML/JSON export of `APPLICATIONS` for plotting tools outside Python.
+- Add unit tests for conversion functions (`cells_per_ml_to_particle_count`, `area_fraction_to_particle_count`).
+
+Contact
+-------
+If you want this as Markdown or to include example plots derived from `APPLICATIONS` windows, I can generate those next.

@@ -1,0 +1,147 @@
+kappa_and_timescale_analysis_INFO
+
+Purpose
+-------
+This file documents the purpose, mathematical background, functions, inputs/outputs, assumptions, and usage for the
+`analysis/kappa_and_timescale_analysis.py` script. The script performs three advanced analyses requested in the
+project GameplanNotes:
+
+- Alignment timescale vs magnetic field strength (τ vs B)
+- Kappa (κ) dependence and a universality check (τ × κ)
+- 2D phase diagram S(N, B) and application-window overlays (nematic order vs density)
+
+High-level summary
+------------------
+`kappa_and_timescale_analysis.py` runs MCAT simulations across specified magnetic fields and particle counts, extracts
+nematic order parameter time series and final values, and produces plots and CSV files:
+
+- figures/analysis/timescale_vs_B.png       (alignment timescale plots)
+- figures/analysis/phase_diagram_2d.png    (2D heatmap S(N, B))
+- figures/analysis/application_windows.png (nematic order vs area fraction φ with application windows)
+- data/timescale_vs_B.csv                  (numeric timescale results)
+- data/phase_diagram_2d.csv                (numeric phase-grid results)
+
+Dependencies and environment
+----------------------------
+- Python 3
+- numpy, pandas, matplotlib
+- Optional: JAX and jax.numpy for JIT acceleration. If JAX is not installed, the script falls back to numpy.
+- Project modules: `src.MCATs1.ActiveTurbulenceSimulation` and `src.parameters2` (for parameter helpers and APPLICATIONS)
+
+Key physical definitions and math
+--------------------------------
+- Nematic order parameter S: S = <cos(2θ)> where θ is the particle orientation (radians). S ∈ [-1, 1], with S≈1 indicating
+  strong nematic alignment.
+
+- Magnetic coupling (alignment strength) κ: the script uses the empirical model
+
+    κ = 0.01 × B^2   (units: 1/s when B is in mT)
+
+  This relation is encoded in `jax_calculate_kappa` (and its numpy fallback).
+
+- Alignment timescale τ: Two operational definitions are used in the analysis code:
+  - Index-based threshold: find the first time when S(t) exceeds a threshold fraction of the final S (default threshold=0.8).
+    The script then reports the corresponding simulation time as τ (seconds).
+  - Universality check: the product τ × κ is reported to test whether τ scales like 1/κ (i.e., τ ∼ κ⁻¹).
+
+  The script uses the threshold-based estimator because it is robust and avoids overfitting short, noisy early-time behavior.
+  The code chooses the first crossing index (or NaN if threshold is never reached during the simulation window).
+
+Function reference (what each function does)
+--------------------------------------------
+- jax_find_alignment_time(S_array, threshold=0.8)
+  Purpose: Given S(t) time series, return the index (integer) of the first time S >= threshold × S_final.
+  Notes: Implemented with JAX JIT when available; otherwise a numpy fallback performs the same logic.
+
+- jax_calculate_kappa(B)
+  Purpose: Compute κ from B using κ = 0.01 × B². JAX-jitted by default, with numpy fallback.
+
+- analyze_alignment_timescale_vs_B(N=500, B_values=None, T=30.0)
+  Purpose: Run simulations for a set of magnetic fields and extract:
+    - τ (index and time in seconds) using `jax_find_alignment_time`
+    - κ using `jax_calculate_kappa`
+    - final nematic order S_final
+    - τ × κ product for universality check
+  Inputs:
+    - N: particle count
+    - B_values: iterable of B (mT)
+    - T: simulation run time (s)
+  Outputs: dict containing arrays for B, tau indices, tau_time (s), kappa, S_final, alignment_ratio
+  Implementation notes: Each simulation constructs `ActiveTurbulenceSimulation(N, L=200.0, dt=0.01, seed=42)`, sets the
+  magnetic field with `sim.set_magnetic_field(B)`, runs `sim.run(T, save_interval=0.5)`, then reads `sim.trajectory_history`
+  and `sim.order_parameter_history`.
+
+- plot_timescale_analysis_1(results, save_path)
+  Purpose: Create 4-panel figure summarizing timescale analysis:
+    A) τ vs B (semilog y)
+    B) κ vs B (quadratic reference overlay)
+    C) final S vs B with S=0.8 threshold line
+    D) τ × κ product (universality check)
+  Notes: Saves PNG to `figures/analysis/timescale_vs_B.png` by default.
+
+- analyze_2d_phase_diagram(N_values=None, B_values=None, T=20.0)
+  Purpose: Sweep over densities (particle counts N) and fields B to compute an S grid: S_grid[i, j] = S_final(N_i, B_j).
+  Outputs: dict with 'grid' (2D array), flattened lists `N_arr`, `B_arr`, `S`, and `phi` (area fraction) for CSV export.
+  Notes: Uses `particle_count_to_area_fraction(N)` from `src.parameters2` to obtain φ for application overlays.
+
+- plot_2d_phase_diagram(results, save_path)
+  Purpose: Plot heatmap of S(N, B) with a contour for S=0.8 (order threshold) and y-ticks labelled by N.
+  Notes: Saves PNG to `figures/analysis/phase_diagram_2d.png` by default.
+
+- plot_application_windows(results_density, save_path)
+  Purpose: For the first few B values, plot S vs area fraction φ and overlay application-specific φ ranges defined in
+  `APPLICATIONS` from `src.parameters2`. Annotates windows (drug delivery, wound infection control, bioreactor mixing, etc.)
+  Notes: Saves PNG to `figures/analysis/application_windows.png` by default.
+
+- main()
+  Purpose: Orchestrates the three analyses, saves CSVs (`data/timescale_vs_B.csv`, `data/phase_diagram_2d.csv`), and writes
+  the three PNG figures. Default parameters are chosen for quick experiments but can be changed by editing the script.
+
+Input/Output summary
+--------------------
+Inputs (via code):
+- Simulation parameters inside `ActiveTurbulenceSimulation` (N, L, dt, seed)
+- Magnetic field B (mT), particle counts N
+- `src.parameters2` for application φ ranges and helper functions
+
+Outputs (files):
+- `figures/analysis/timescale_vs_B.png`
+- `figures/analysis/phase_diagram_2d.png`
+- `figures/analysis/application_windows.png`
+- `data/timescale_vs_B.csv` (columns: B_mT, tau_seconds, kappa_inv_s, S_final, tau_times_kappa)
+- `data/phase_diagram_2d.csv` (columns: N, B_mT, S, phi)
+
+Assumptions, limitations, and recommended checks
+------------------------------------------------
+- The timescale estimator uses a threshold on the *final* S. If S_final is small (system never orders), the threshold-based
+  estimator will likely return -1 or NaN; interpret accordingly.
+- The κ = 0.01 × B² formula is model-dependent. If using a different calibration, modify `jax_calculate_kappa`.
+- JAX is optional. JAX gives JIT speedups for the small internal routines; the heavy simulation work typically occurs in
+  `ActiveTurbulenceSimulation`, which may or may not use JAX.
+- The script uses fixed seeds (seed=42) for reproducibility. Change seed or remove it to sample stochastic variability.
+- Simulation runtime (`T`) may need to be increased if order takes longer than the runtime window used here.
+
+How to run
+----------
+From repository root:
+
+```powershell
+python analysis/kappa_and_timescale_analysis.py
+```
+
+Edit parameters in the `main()` call at the bottom to change N ranges, B ranges, or T.
+
+Notes for adaptation and extension
+---------------------------------
+- To compute τ using a fitted exponential model (S(t)=S_final*(1−exp(−t/τ))), you can add a small non-linear fit
+  (e.g., least-squares) to early-to-mid time points and extract τ more robustly; current code uses a threshold-crossing
+  estimator which is simpler and robust to noise.
+- To quantify variability add repeated runs per (N,B) with different seeds and export mean ± std for S and τ.
+- If you have `MCATs3` with a `verbose` flag, adapt the `sim.run(...)` call accordingly, or unify the run API across
+  `MCATs` classes.
+
+Contact / provenance
+--------------------
+This INFO file was generated to document `analysis/kappa_and_timescale_analysis.py` and follows the style of other
+`*_INFO` files in the project. If you want a markdown version or more mathematical derivations (e.g., linear-response
+prediction τ ∝ κ⁻¹), I can add that as a companion file.

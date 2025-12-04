@@ -1,0 +1,622 @@
+# MCATs Master Analysis Script Guide
+## `run_all_analyses.py` / `run_all_analyses2.py` (JAX-optimized)
+
+---
+
+## 🎯 PURPOSE
+
+This is the **orchestration script**—the conductor of your entire simulation pipeline. Instead of running individual analysis scripts manually, this master script:
+
+1. **Automates the workflow**: Runs all simulations in the correct order
+2. **Manages dependencies**: Ensures outputs from one step are available for the next
+3. **Organizes results**: Creates directory structure and saves everything properly
+4. **Provides progress tracking**: Shows what's running and how long it takes
+5. **Enables partial runs**: Can run just one analysis if needed
+
+**Analogy**: Think of this as a Makefile or build script for your research project. You run it once, come back in an hour, and all your data + figures are ready for your poster.
+
+---
+
+## 📁 DIRECTORY STRUCTURE CREATED
+
+```
+project/
+├── data/                          # Raw simulation outputs
+│   ├── aligned_state.xyz          # VMD trajectory file
+│   ├── S_vs_density_B10.csv       # Phase diagram data (B=10mT)
+│   ├── S_vs_density_B20.csv       # Phase diagram data (B=20mT)
+│   ├── S_vs_density_B30.csv       # Phase diagram data (B=30mT)
+│   ├── growth_dynamics_ramped.csv # Growth simulation (ramped field)
+│   ├── growth_dynamics_step.csv   # Growth simulation (step field)
+│   └── growth_dynamics_constant.csv # Growth simulation (constant field)
+│
+├── figures/
+│   ├── MCATs/                     # Basic simulation snapshots
+│   │   ├── turbulence_baseline.png
+│   │   ├── turbulence_suppressed.png
+│   │   ├── field_sweep_snapshots.png
+│   │   └── phase_diagram.png
+│   │
+│   ├── analysis/                  # Density & time analysis
+│   │   ├── S_vs_time_multiple_N.png
+│   │   ├── S_vs_density_B10.png
+│   │   ├── S_vs_density_B20.png
+│   │   ├── S_vs_density_B30.png
+│   │   ├── growth_control_ramped.png
+│   │   ├── growth_control_step.png
+│   │   └── growth_control_constant.png
+│   │
+│   ├── results/                   # Phase diagrams & correlations
+│   └── applications/              # Application-specific plots
+│
+└── analysis/                      # Analysis scripts (imported by this master)
+    ├── nematic_vs_density_time.py
+    └── nematic_vs_density_time2.py (JAX version)
+```
+
+---
+
+## 🔄 WORKFLOW: THE SIX ANALYSIS STEPS
+
+### **STEP 1: Basic Simulation Examples**
+**Runtime**: ~5 minutes  
+**Purpose**: Generate fundamental demonstration figures showing turbulence suppression
+
+**What it runs**:
+```python
+run_baseline_turbulence()      # No magnetic field (B=0)
+run_magnetic_suppression()     # Strong field (B=25 mT)
+run_field_sweep()              # Vary B from 0 to 30 mT
+```
+
+**Outputs**:
+- `turbulence_baseline.png`: Chaotic bacterial motion (S ≈ 0)
+- `turbulence_suppressed.png`: Aligned bacteria (S ≈ 1)
+- `field_sweep_snapshots.png`: Side-by-side comparison at different B
+- `data/aligned_state.xyz`: 3D trajectory file for VMD visualization
+
+**Why this matters**: These are your "hero images"—the dramatic before/after shots that immediately communicate your project's premise. Perfect for poster title panel.
+
+**JAX optimization** (version 2 only):
+- Calculates average order `<S>` and standard deviation across field sweep
+- Uses `jax_calculate_average_order()` and `jax_calculate_order_std()`
+- Provides quick statistical summary printed to console
+
+
+### **STEP 2: Density & Time Analysis**
+**Runtime**: ~20-30 minutes  
+**Purpose**: Generate the complex multi-panel figures you showed me earlier
+
+**What it runs**:
+```python
+nematic_vs_density_time.main()  # Imports and runs the full analysis suite
+```
+
+This internally executes three analyses:
+1. **Analysis 1**: S(t) curves for N = 100, 200, 500, 1000, 2000 at B=20 mT
+2. **Analysis 2**: S(φ) and τ(φ) at B = 10, 20, 30 mT (phase diagram slices)
+3. **Analysis 3**: Bacterial growth simulations with three control protocols
+
+**Outputs**:
+- All the CSV files with raw data
+- All the analysis PNG figures you showed me
+
+**Why this matters**: This is the core of your scientific contribution—showing how density affects magnetic control and whether you can maintain order during bacterial growth.
+
+
+### **STEP 3: Phase Diagram Generation**
+**Runtime**: ~30-60 minutes  
+**Purpose**: Create complete 2D map of (N, B) parameter space  
+**Status**: Placeholder (needs implementation)
+
+**What it would do**:
+- Sweep over N = 100 to 2000 (10-20 values)
+- Sweep over B = 0 to 30 mT (20-30 values)
+- Run ~400-600 simulations to fill the (N, B) grid
+- Measure final S at each point
+- Generate heatmap with phase boundary curve
+
+**Expected output**: High-resolution phase diagram (like Images 3-4 you showed)
+
+**Why deferred**: Computationally expensive—best run overnight or on cluster
+
+
+### **STEP 4: Correlation Length Analysis**
+**Runtime**: ~15 minutes  
+**Purpose**: Measure spatial order decay C(r)  
+**Status**: Placeholder (needs implementation)
+
+**What it would do**:
+- Calculate pair correlation function C(Δr) = ⟨cos(2(θᵢ - θⱼ))⟩
+- Measure correlation length ξ (distance over which order decays)
+- Compare ξ at different field strengths
+- Show how magnetic field increases correlation length
+
+**Physics**: Stronger magnetic field → longer-range order → larger ξ
+
+**Expected output**: 
+- Plot of C(r) vs r for different B values
+- Shows exponential decay: C(r) ~ exp(-r/ξ)
+
+
+### **STEP 5: Application Mapping**
+**Runtime**: ~5 minutes  
+**Purpose**: Overlay real application constraints on phase diagrams  
+**Status**: Placeholder (needs implementation)
+
+**What it would do**:
+- Take phase diagram from Step 3
+- Add colored regions for each application (already defined in parameters2.py)
+- Annotate optimal operating points
+- Generate application-specific recommendations
+
+**Expected output**: Phase diagram with annotations like "Drug Delivery: φ=0.01-0.02, B>15 mT"
+
+
+### **STEP 6: Poster Figure Compilation**
+**Runtime**: ~2 minutes  
+**Purpose**: Select and arrange best figures for presentation  
+**Status**: Placeholder (needs implementation)
+
+**What it would do**:
+- Copy key figures to a `poster/` directory
+- Potentially resize/crop for optimal layout
+- Generate high-DPI versions (300+ dpi)
+- Create figure panel labels (A, B, C, D...)
+
+---
+
+## 🚀 JAX JIT OPTIMIZATION (Version 2 Only)
+
+### **What is JAX?**
+JAX is Google's numerical computing library that combines:
+- **NumPy-like syntax**: Write code that looks like normal Python
+- **JIT compilation**: Automatically converts Python to optimized machine code
+- **GPU acceleration**: Can run on NVIDIA/AMD GPUs if available
+- **Auto-differentiation**: Can compute gradients (useful for optimization)
+
+### **Why JAX in this project?**
+The master script runs hundreds of simulations. JAX accelerates the analysis of results:
+
+**Performance gains**:
+- Array operations: 10-100× faster than NumPy
+- Statistical calculations: Near-instant for moderate arrays
+- Parameter sweeps: Can batch process entire arrays at once
+
+**Where it's used**:
+- Calculating average order parameters across many simulations
+- Finding threshold crossing times (when S exceeds 0.8)
+- Detecting steady states in time series
+- Processing magnetic field protocols (ramped/step/constant)
+
+### **JAX Utility Functions Explained**
+
+#### `jax_calculate_average_order(S_values_array)`
+**Purpose**: Fast mean calculation
+```python
+# Instead of:
+avg_S = np.mean(S_values)  # ~1 ms for 1000 points
+
+# JAX does:
+avg_S = jax_calculate_average_order(jnp.array(S_values))  # ~0.01 ms
+```
+**When used**: After field sweep to summarize results
+
+#### `jax_calculate_order_std(S_values_array)`
+**Purpose**: Fast standard deviation
+**Physical meaning**: Measures how much S fluctuates (low = steady order, high = unstable)
+
+#### `jax_find_steady_state_index(S_values_array, window_size=5)`
+**Purpose**: Detect when system reaches equilibrium
+
+**Algorithm**:
+1. Calculate differences between consecutive S values: dS/dt
+2. Define threshold: stabilized when dS/dt < 10% of average change
+3. Find first index where changes stay below threshold
+4. Return that index as "steady state time"
+
+**Why JAX**: This involves sliding window operations—perfect for vectorization
+
+**Use case**: Determine how long to run simulations (stop after steady state reached)
+
+#### `jax_batch_process_B_values(B_array)`
+**Purpose**: Ensure magnetic field values are reasonable
+```python
+B_clipped = jax_batch_process_B_values(B_array)  # Clips to [0, 100] mT
+```
+**Safety check**: Prevents accidentally trying B = 1000 mT (unrealistic)
+
+#### `jax_calculate_response_time(S_values_array, threshold=0.5)`
+**Purpose**: Find when system reaches fraction of final order
+
+**Example**:
+```python
+# If final S = 0.9, find when S first exceeds 0.45 (50% of final)
+idx = jax_calculate_response_time(S_array, threshold=0.5)
+response_time = times[idx]
+```
+
+**Engineering metric**: How fast does system respond to field changes?  
+**Application**: Drug delivery timing—how quickly can we steer bacteria?
+
+#### `jax_normalize_S_values(S_values_array)`
+**Purpose**: Scale S values to [0, 1] range
+```python
+S_norm = (S - S_min) / (S_max - S_min)
+```
+**Use case**: Comparing different simulations with different S ranges on same plot
+
+#### `jax_estimate_relaxation_time(S_values_array, S_final=None)`
+**Purpose**: Estimate characteristic timescale τ from exponential fit
+
+**Physics**: Many physical systems relax exponentially:
+```
+S(t) = S_final × (1 - exp(-t/τ))
+```
+
+**Algorithm**: Find when S reaches 63.2% of final value (definition of τ in exponential decay)
+
+**Why 63.2%?**: Mathematical property of exponentials:
+- At t = τ: S(τ) = S_final × (1 - e⁻¹) ≈ 0.632 × S_final
+
+**Use case**: Compare relaxation times across different densities/fields
+
+#### `jax_histogram_order_values(S_values_array, num_bins=10)`
+**Purpose**: Distribution of order parameter values
+
+**What it shows**:
+- Unimodal peak at S ≈ 0 → disordered phase
+- Unimodal peak at S ≈ 1 → ordered phase
+- Bimodal (two peaks) → system fluctuates between states
+
+**Use case**: Identify phase transitions (bimodal distribution at critical point)
+
+---
+
+## 🎮 USAGE PATTERNS
+
+### **Pattern 1: Run Everything (Full Pipeline)**
+```bash
+python run_all_analyses2.py
+```
+- Runs all 6 steps sequentially
+- Takes 1-2 hours total
+- Best for: Final data collection before poster deadline
+
+### **Pattern 2: Run Specific Analysis**
+```bash
+python run_all_analyses2.py basic      # Just step 1 (~5 min)
+python run_all_analyses2.py density    # Just step 2 (~30 min)
+python run_all_analyses2.py phase      # Just step 3 (~60 min)
+python run_all_analyses2.py correlation # Just step 4 (~15 min)
+python run_all_analyses2.py app        # Just step 5 (~5 min)
+python run_all_analyses2.py poster     # Just step 6 (~2 min)
+```
+- Runs only that component
+- Best for: Iterative development, debugging, re-running one analysis after parameter change
+
+### **Pattern 3: Interrupted Recovery**
+If script crashes or you press Ctrl+C:
+- Partial results saved in `data/` and `figures/` directories
+- Can restart with specific step that failed
+- Data from completed steps is preserved
+
+---
+
+## 📊 OUTPUT INTERPRETATION
+
+### **Console Output Format**
+
+```
+================================================================================
+  STEP 1: Basic Simulation Examples
+================================================================================
+
+[1/3] Running baseline turbulence (B=0)...
+  Running simulation... [████████████████████] 100%
+  Final order: S = 0.043
+
+[2/3] Running magnetic suppression (B=25 mT)...
+  Running simulation... [████████████████████] 100%
+  Final order: S = 0.912
+
+[3/3] Running field sweep...
+  B =  0.0 mT: S = 0.038
+  B =  5.0 mT: S = 0.124
+  B = 10.0 mT: S = 0.456
+  B = 15.0 mT: S = 0.782
+  B = 20.0 mT: S = 0.891
+  B = 25.0 mT: S = 0.923
+  B = 30.0 mT: S = 0.941
+
+Analyzing results with JAX acceleration...
+  Field sweep: <S> = 0.594 ± 0.358
+
+Saving VMD trajectory...
+  Wrote 1000 frames to data/aligned_state.xyz
+```
+
+**What to look for**:
+- **S values make sense**: S near 0 at low B, near 1 at high B
+- **No crashes**: All steps complete without errors
+- **Files created**: Check that expected outputs appear
+
+### **Summary Output**
+
+At the end, you get:
+```
+================================================================================
+  ANALYSIS COMPLETE!
+================================================================================
+
+Total runtime: 47.3 minutes
+
+Analysis Results:
+  Average order parameter: 0.594
+  Order std deviation: 0.358
+
+Generated files:
+
+--- Data Files ---
+  data/aligned_state.xyz
+  data/S_vs_density_B10.csv
+  data/S_vs_density_B20.csv
+  data/S_vs_density_B30.csv
+  data/growth_dynamics_ramped.csv
+  data/growth_dynamics_step.csv
+  data/growth_dynamics_constant.csv
+
+--- Figures: Basic Simulations ---
+  turbulence_baseline.png
+  turbulence_suppressed.png
+  field_sweep_snapshots.png
+  phase_diagram.png
+
+--- Figures: Density & Time Analysis ---
+  figures/analysis/S_vs_time_multiple_N.png
+  figures/analysis/S_vs_density_B10.png
+  figures/analysis/S_vs_density_B20.png
+  figures/analysis/S_vs_density_B30.png
+  figures/analysis/growth_control_ramped.png
+  figures/analysis/growth_control_step.png
+  figures/analysis/growth_control_constant.png
+
+--- Next Steps ---
+  1. Review all figures in figures/ directory
+  2. Select best figures for poster (aim for 4-6 main panels)
+  3. Import into PowerPoint/Illustrator
+  4. Add text from docs/*.md files
+  5. Write 2-pager using data/*.csv results
+
+================================================================================
+```
+
+---
+
+## 🐛 ERROR HANDLING
+
+### **Graceful Interruption**
+```python
+except KeyboardInterrupt:
+    print("\n\n*** Analysis interrupted by user ***")
+    print("Partial results may be available in data/ and figures/ directories")
+```
+- Press Ctrl+C to stop
+- Already-generated files are safe
+- Can resume from last completed step
+
+### **Exception Handling**
+```python
+except Exception as e:
+    print(f"\n\n*** ERROR: {e} ***")
+    import traceback
+    traceback.print_exc()
+```
+- Catches unexpected errors
+- Prints full stack trace for debugging
+- Doesn't lose work from earlier steps
+
+### **Common Issues**
+
+**ImportError: No module named 'nematic_vs_density_time2'**
+- Solution: Falls back to non-JAX version automatically
+```python
+try:
+    import nematic_vs_density_time2 as nematic_module
+except ImportError:
+    import nematic_vs_density_time as nematic_module
+```
+
+**MemoryError during phase diagram**
+- Reduce N_max or B resolution
+- Run overnight on machine with more RAM
+- Split into chunks (run different B values separately)
+
+**Figures not appearing**
+- Check `figures/` directory was created
+- Verify matplotlib backend (use 'Agg' for headless systems)
+- Check disk space
+
+---
+
+## ⚙️ CONFIGURATION & CUSTOMIZATION
+
+### **Timing Estimates**
+Update if you find different runtimes:
+```python
+# Step 1: Basic examples (fast, ~5 min)
+# Step 2: Density & time analysis (moderate, ~20-30 min)
+# Step 3: Phase diagram (slow, ~30-60 min) - OPTIONAL
+```
+
+### **Directory Names**
+Change if you want different organization:
+```python
+DIRS = [
+    'data1',              # Add '1' suffix for versioning
+    'figures1/MCATs',     # Separate run attempts
+    ...
+]
+```
+
+### **Optional Steps**
+Comment out expensive analyses during development:
+```python
+# run_phase_diagram()      # Skip for quick tests
+# run_correlation_analysis()
+```
+
+---
+
+## 🧪 TESTING STRATEGY
+
+### **Quick Test Run**
+Modify analysis modules to use smaller parameters:
+```python
+# In nematic_vs_density_time.py
+N_values = [100, 200]        # Instead of [100, 200, 500, 1000, 2000]
+T = 5.0                      # Instead of 30.0 seconds
+save_interval = 1.0          # Instead of 0.5 seconds
+```
+Runtime drops from 30 min → 2 min
+
+### **Single-Step Testing**
+```bash
+python run_all_analyses2.py basic  # Test just first step
+```
+- Verify directory creation works
+- Check imports are correct
+- Confirm figure generation succeeds
+
+### **Dry Run Mode** (could be added)
+```python
+if '--dry-run' in sys.argv:
+    print("Would run: Basic simulations")
+    print("Would run: Density analysis")
+    # ... but don't actually run
+```
+
+---
+
+## 🔬 SCIENTIFIC WORKFLOW INTEGRATION
+
+### **Typical Research Cycle**
+
+**Phase 1: Exploration** (Days 1-3)
+- Run `basic` analysis repeatedly with different parameters
+- Adjust magnetic field ranges, particle counts
+- Find interesting phenomena
+
+**Phase 2: Systematic Study** (Days 4-7)
+- Run full `density` analysis with final parameters
+- Generate complete dataset
+- Identify trends, optimal conditions
+
+**Phase 3: Publication Prep** (Days 8-10)
+- Run full pipeline with `python run_all_analyses2.py`
+- Select best figures for poster
+- Write results section using CSV data
+- Create application-specific figures
+
+### **Data Management**
+
+**Version Control**:
+```bash
+# Save results with date stamp
+cp -r figures/ figures_2025-11-15/
+cp -r data/ data_2025-11-15/
+```
+
+**Parameter Tracking**:
+Create `run_log.txt`:
+```
+2025-11-15 14:30: Ran with B_max=30mT, N_max=2000, tau_double=20min
+2025-11-16 09:00: Increased N_max=3000, added new application window
+```
+
+**Backup Critical Data**:
+```bash
+# CSV files are small—backup regularly
+rsync -av data/*.csv backup/
+```
+
+---
+
+## 🎯 KEY DESIGN PRINCIPLES
+
+### **1. Modularity**
+Each step is independent function—can be run, tested, modified separately
+
+### **2. Fail-Safe**
+Errors in one step don't destroy earlier work
+
+### **3. Resumability**
+Can restart from any step without re-running everything
+
+### **4. Transparency**
+Console output shows exactly what's happening
+
+### **5. Extensibility**
+Easy to add new analyses (Step 7, Step 8...) without breaking existing code
+
+---
+
+## 💡 ADVANCED FEATURES (Version 2 Only)
+
+### **JAX Warmup**
+```python
+print("\nWarming up JAX JIT compiler...")
+_ = jax_calculate_average_order(jnp.array([0.1, 0.2, 0.3, 0.4, 0.5]))
+```
+**Why**: First JAX call triggers compilation (slow). Warmup does this upfront with dummy data so real analysis runs at full speed.
+
+### **Results Summary Integration**
+```python
+if results_summary:
+    print("Analysis Results:")
+    if 'analysis' in results_summary:
+        analysis = results_summary['analysis']
+        print(f"  Average order parameter: {analysis.get('avg_S', 'N/A')}")
+```
+**Why**: Prints key metrics immediately—don't have to dig through CSV files to see if results are reasonable
+
+### **Timestamp Logging**
+```python
+print(f"  Run started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+```
+**Why**: Track when long runs started/ended, useful for lab notebook
+
+---
+
+## 🎓 LEARNING OUTCOMES
+
+Running this script teaches:
+
+1. **Pipeline orchestration**: How to chain multiple analyses together
+2. **Error handling**: Graceful degradation when things fail
+3. **File I/O management**: Organizing simulation outputs
+4. **Performance optimization**: Why and how to use JAX
+5. **Scientific workflow**: Real-world research project structure
+
+---
+
+## 📚 COMPARISON: Version 1 vs Version 2
+
+| Feature | Version 1 | Version 2 (JAX) |
+|---------|-----------|-----------------|
+| Basic simulations | ✓ | ✓ |
+| Statistical analysis | NumPy | JAX (10-100× faster) |
+| Steady-state detection | ✗ | ✓ (automated) |
+| Response time calculation | ✗ | ✓ (automated) |
+| Relaxation time fitting | ✗ | ✓ (exponential fit) |
+| Results summary | Minimal | Detailed with metrics |
+| GPU support | ✗ | ✓ (if available) |
+| Memory efficiency | Good | Better (batching) |
+
+**Recommendation**: Use Version 2 for final analyses, Version 1 for quick tests/debugging
+
+---
+
+*Guide for MCATs Master Orchestration Script*  
+*Author: Michael A. Incorvaia*  
+*Date: November 2025*

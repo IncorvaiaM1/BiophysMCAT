@@ -1,0 +1,477 @@
+# Magnetically Controlled Active Turbulence System (MCATs)
+## Analysis Guide: Density & Time Dynamics
+
+---
+
+## OVERVIEW
+
+This code investigates **how collective bacterial behavior changes with population density and time under magnetic control**. The central question: *Can we use magnetic fields to organize bacteria into ordered patterns, even as their population grows exponentially?*
+
+**Real-world motivation**: Imagine treating a bacterial skin infection. Bacteria multiply rapidly, but magnetic nanoparticles attached to them could allow external control of their movement—potentially disrupting biofilms, directing drug delivery, or preventing spread.
+
+---
+
+## THREE CORE ANALYSES
+
+### **Analysis 1: Order Parameter Evolution at Multiple Densities**
+**Question**: Does alignment happen faster at low or high bacterial density?
+
+**What it does**:
+- Runs simulations with 100, 200, 500, 1000, and 2000 bacteria
+- Tracks nematic order parameter S(t) over 30 seconds
+- Compares how quickly bacteria align at different densities
+
+**Physics**: At low density, bacteria rarely interact—magnetic field dominates. At high density, bacterial collisions compete with magnetic alignment. There's a "sweet spot" where both effects cooperate.
+
+
+### **Analysis 2: Phase Diagram Construction**
+**Question**: What combinations of density (N) and magnetic field (B) produce collective order?
+
+**What it does**:
+- Systematically varies particle count N from 100 to 2000
+- Tests magnetic fields B = 10, 20, 30 mT
+- Measures final order parameter S after equilibration
+- Identifies phase boundary between disordered (S < 0.8) and ordered (S > 0.8) states
+
+**Physics**: This maps the "phase diagram" in (N, B) space—similar to how water freezes at specific temperature/pressure combinations. Here, bacteria "order" at specific density/field combinations.
+
+
+### **Analysis 3: Bacterial Growth with Magnetic Control**
+**Question**: Can magnetic fields maintain control as bacteria multiply exponentially?
+
+**What it does**:
+- Simulates bacterial population doubling every 20 minutes (realistic for fast-growing strains)
+- Tests three control strategies:
+  - **Ramped**: Magnetic field increases linearly with time
+  - **Step**: Field jumps after each population doubling
+  - **Constant**: Fixed maximum field throughout
+- Tracks order parameter S as system evolves in (φ, B) space
+
+**Physics**: Exponential growth is challenging to control—population explodes from 100 to 700+ bacteria in 60 minutes. The magnetic field must "keep pace" to maintain collective order.
+
+---
+
+## KEY MATHEMATICAL CONCEPTS
+
+### **Nematic Order Parameter S**
+```
+S = ⟨ |cos(2(θᵢ - θ̄))| ⟩
+```
+
+**What it measures**: How well bacteria align with each other
+- **S = 0**: Random orientations (disordered)
+- **S = 1**: Perfect parallel alignment (ordered)
+- **Threshold S = 0.8**: Defines transition to collective behavior
+
+**Why "nematic"?**: Same mathematical structure as liquid crystal physics—bacteria behave like elongated molecules that prefer parallel alignment.
+
+**Physical interpretation**:
+- θᵢ = orientation angle of bacterium i
+- θ̄ = average orientation of all bacteria
+- Factor of 2 accounts for head-tail symmetry (bacteria don't have fronts/backs that matter for alignment)
+
+
+### **Area Fraction φ**
+```
+φ = N × A_particle / A_system
+φ = N × π(2.5)² / (200)² = N × 0.00049
+```
+
+**What it measures**: Fraction of space occupied by bacteria
+- Small φ (< 0.01): Dilute, bacteria rarely collide
+- Medium φ (0.01-0.05): Optimal for many applications
+- Large φ (> 0.1): Crowded, strong hydrodynamic interactions
+
+**Why it matters**: φ is dimensionless and scales properly—results with φ = 0.02 apply to any system size (petri dish or wound) at that density.
+
+
+### **Exponential Population Growth**
+```
+N(t) = N₀ × exp(ln(2) × t / τ_double)
+```
+
+**What it models**: Bacterial reproduction
+- N₀ = initial population (typically 100)
+- τ_double = doubling time (20 minutes for fast-growing bacteria)
+- Growth rate k = ln(2) / τ_double
+
+**Example**: Starting with 100 bacteria:
+- t = 20 min → 200 bacteria
+- t = 40 min → 400 bacteria  
+- t = 60 min → 800 bacteria
+
+
+### **Magnetic Field Protocols**
+
+#### Ramped Protocol:
+```
+B(t) = B_max × (t / t_total)
+```
+- Smooth linear increase
+- Anticipates growth trajectory
+- Good for predictable scenarios
+
+#### Step Protocol:
+```
+B(t) = min(5 × floor(t / τ_double), B_max)
+```
+- Jumps 5 mT per generation
+- Reactive to population doublings
+- Good when growth rate uncertain
+
+#### Constant Protocol:
+```
+B(t) = B_max
+```
+- Maximum field from start
+- Tests if "overkill" strategy works
+- High energy cost
+
+---
+
+##  PHYSICS PRINCIPLES
+
+### **Active Matter Physics**
+Bacteria are "active particles"—they self-propel using flagella. This creates:
+- **Active turbulence**: Chaotic swirling flows at high density
+- **Collective motion**: Emergent order when particles align
+- **Non-equilibrium dynamics**: Energy constantly injected by bacteria
+
+Unlike passive colloids (which settle to equilibrium), active matter can spontaneously organize into patterns: flocks, swirls, bands.
+
+
+### **Magnetic Torque on Bacteria**
+```
+τ_mag = m × B × sin(θ)
+```
+
+Where:
+- m = magnetic moment (from attached nanoparticles)
+- B = external magnetic field strength
+- θ = angle between bacterium orientation and field direction
+
+**Physical mechanism**: Magnetic nanoparticles bound to bacteria experience torque, rotating the entire bacterium like a compass needle. Strong enough field → bacteria align with field direction.
+
+
+### **Competing Effects**
+1. **Magnetic alignment** (wants parallel orientation)
+2. **Steric repulsion** (bacteria can't overlap)
+3. **Hydrodynamic interactions** (swimming creates fluid flows that affect neighbors)
+4. **Thermal fluctuations** (random jiggling)
+5. **Active propulsion** (self-driven motion)
+
+Order emerges when magnetic torque dominates over these competing effects.
+
+
+### **Critical Phase Boundary**
+Like ferromagnetism (iron becoming magnetic below Curie temperature), there's a critical curve in (N, B) space:
+- **Below curve**: Disordered phase (S ≈ 0)
+- **Above curve**: Ordered phase (S ≈ 1)
+- **On curve**: Critical point (fluctuations, slow dynamics)
+
+The blue dashed line in phase diagrams shows this boundary.
+
+---
+
+## CODE ARCHITECTURE
+
+### **JAX JIT Optimization**
+
+Several functions use `@jax.jit` decorator for speed:
+
+```python
+@jax.jit
+def jax_find_alignment_time(S_array, threshold=0.8):
+    exceeds = S_array > threshold
+    indices = jnp.where(exceeds, size=1)[0]
+    return jnp.where(indices.size > 0, indices[0], -1)
+```
+
+**Why JAX?**
+- Just-In-Time compilation → 10-100× faster than NumPy
+- GPU acceleration (if available)
+- Automatic differentiation (useful for optimization)
+- Critical for parameter sweeps with thousands of simulations
+
+**What gets compiled?**
+- Mathematical operations (growth calculations, field protocols)
+- Array operations (finding threshold crossings)
+- Batch processing (handling multiple time points simultaneously)
+
+**What stays in Python?**
+- Simulation engine (complex state management)
+- File I/O (saving data, loading parameters)
+- Plotting (Matplotlib not JAX-compatible)
+
+
+### **Function Breakdown**
+
+#### `measure_order_vs_time_multiple_densities(N_values, B, T, save_interval)`
+**Purpose**: Generate S(t) curves for different densities
+
+**Process**:
+1. Loop over each particle count N
+2. Initialize simulation with N bacteria at density φ = N × 0.00049
+3. Set magnetic field to B (constant)
+4. Run for T seconds, recording S every save_interval
+5. Store time series for plotting
+
+**Output**: Dictionary with N values, time points, S(t) arrays, φ values
+
+**Typical call**:
+```python
+results = measure_order_vs_time_multiple_densities(
+    N_values=[100, 200, 500, 1000, 2000],
+    B=20.0,  # milliTesla
+    T=30.0   # seconds
+)
+```
+
+
+#### `measure_order_vs_density_at_fixed_B(N_values, B, T_equilibrate)`
+**Purpose**: Map phase boundary at fixed magnetic field
+
+**Process**:
+1. Loop over particle counts
+2. Run simulation to steady state (T_equilibrate = 20s)
+3. Measure final order parameter S_final
+4. Use JAX to find alignment time τ (when S first exceeds 0.8)
+5. Build DataFrame with results
+
+**Output**: pandas DataFrame with columns [N, φ, S_final, τ_align]
+
+**Key insight**: Some (N, B) combinations never reach S > 0.8 → τ_align = NaN
+
+
+#### `simulate_bacterial_growth_with_magnetic_control(...)`
+**Purpose**: Simulate time-evolving system with population growth
+
+**Process**:
+1. Generate time points (every 5 minutes from 0 to 60 min)
+2. For each time point:
+   - Calculate population using exponential growth (JAX-compiled)
+   - Compute magnetic field based on protocol (JAX-compiled)
+   - Run 10-second simulation to measure instantaneous S
+3. Track trajectory in (φ, B, S) space
+
+**Output**: Dictionary with synchronized time series
+
+**Biological realism**:
+- Doubling time = 20 min matches *E. coli* in rich media
+- Population capped at 5000 (memory/computational limit)
+- Different seeds per time point (represents stochastic growth)
+
+
+#### `plot_analysis_1(results, save_path)`
+**Purpose**: Visualize order evolution across densities
+
+**Two panels**:
+1. **Left**: S(t) curves colored by density
+   - Shows alignment dynamics
+   - Red dashed line marks S = 0.8 threshold
+2. **Right**: Final S vs φ
+   - Shows equilibrium order as function of density
+   - Identifies optimal density range
+
+**Insight**: Curves should show sigmoidal growth (slow start → rapid rise → plateau)
+
+
+#### `plot_analysis_2(df, B, save_path)`
+**Purpose**: Show phase diagram slice and response time
+
+**Two panels**:
+1. **Left**: S_final vs φ with application regions
+   - Colored bands show relevant density ranges for each application
+   - Identifies where each application operates
+2. **Right**: Alignment time τ vs φ
+   - How quickly system responds at different densities
+   - Critical for time-sensitive applications (wound treatment)
+
+**Key observation**: Response time should be relatively constant if magnetic torque dominates
+
+
+#### `plot_analysis_3(results, save_path)`
+**Purpose**: Comprehensive view of growth + control dynamics
+
+**Four panels**:
+1. **Top-left**: Population N(t) on log scale
+   - Shows exponential growth
+2. **Top-right**: Magnetic field B(t)
+   - Shows control protocol
+3. **Bottom-left**: Order parameter S(t)
+   - Tests if control maintains S > 0.8
+4. **Bottom-right**: Trajectory in (φ, B) space
+   - Arrows show time evolution
+   - Color indicates instantaneous order
+   - Shows if system stays in ordered phase
+
+**Success criterion**: S(t) remains above 0.8 threshold throughout
+
+
+### **JAX Utility Functions**
+
+#### `jax_calculate_growth(N0, t_min, doubling_time)`
+- Pure math → perfect for JIT compilation
+- 100× faster than Python loop for batch calculations
+- Used when processing many time points
+
+#### `jax_calculate_magnetic_field_ramped/step(...)`
+- Separates protocol logic into pure functions
+- Enables vectorization over time arrays
+- Can test different protocols without rerunning simulations
+
+#### `jax_find_alignment_time(S_array, threshold)`
+- Replaces Python loop with vectorized search
+- Returns first index where S exceeds threshold
+- Returns -1 if never exceeds (cleaner than None for numerical work)
+
+#### `jax_calculate_nematic_order_from_angles(angles)`
+- Direct S calculation from angle array
+- Used for post-processing or real-time monitoring
+- Matches simulation's internal calculation
+
+---
+
+## VISUALIZATION STRATEGY
+
+### **Color Schemes**
+- **Viridis**: Density gradients (perceptually uniform)
+- **RdYlGn**: Order parameter (red = disorder, green = order)
+- **Application colors**: Distinct hues for each biomedical use case
+
+### **Key Visual Elements**
+- **Threshold lines**: S = 0.8 marks ordered phase
+- **Application bands**: Shaded regions show target densities
+- **Arrows**: Show time evolution in phase space
+- **Log scales**: Used for population (exponential growth)
+
+### **Figure Purposes**
+- **Analysis 1**: Temporal dynamics—how does order *emerge*?
+- **Analysis 2**: Steady-state phase diagram—what *configurations* work?
+- **Analysis 3**: Dynamic control—can we *maintain* order during growth?
+
+---
+
+## BIOMEDICAL APPLICATIONS
+
+### **Drug Delivery** (φ = 0.005-0.02)
+- Low density for tissue penetration
+- Magnetic steering guides bacteria to tumor
+- Bacteria release drug payload on command
+
+### **Microfluidic Valve** (φ = 0.02-0.05)
+- Medium density creates bacterial "plug"
+- Aligned bacteria block flow
+- Rotating field opens/closes valve
+
+### **Bioreactor Mixing** (φ = 0.03-0.08)
+- Moderate density for efficient stirring
+- Rotating magnetic field creates convection
+- Bacteria mix nutrients/waste
+
+### **Biosensor Swarm** (φ = 0.08-0.15)
+- High density for signal amplification
+- Bacteria detect chemical gradient
+- Collective response more reliable than individual
+
+### **Wound Infection Control** (φ = 0.15-0.5)
+- Very high density (biofilm-like)
+- Magnetic disruption breaks bacterial cohesion
+- Prevents pathogen spreading
+
+---
+
+## EXPECTED RESULTS
+
+### **Analysis 1 Predictions**
+- Low N: Slow alignment (few interactions → weak collective effect)
+- Medium N: Fast alignment (optimal density for cooperative alignment)
+- High N: Moderate alignment (crowding impedes rotation)
+
+### **Analysis 2 Predictions**
+- S vs φ should be sigmoidal: flat at low φ, steep transition, plateau at high φ
+- Critical density φ_c decreases with increasing B (stronger field → order at lower density)
+- Response time τ should be roughly constant (if magnetic torque dominates over density effects)
+
+### **Analysis 3 Predictions**
+- **Ramped protocol**: Best performance if growth is predictable
+- **Step protocol**: Good if growth rate uncertain but monitorable
+- **Constant protocol**: Wasteful early, insufficient late (unless B_max very large)
+
+**Success scenario**: S remains > 0.8 throughout growth period
+
+**Failure scenario**: S drops below 0.8 as population explodes → loss of control
+
+---
+
+## DEBUGGING TIPS
+
+### **If S never exceeds 0.8:**
+- Magnetic field too weak (increase B)
+- Density too low (increase N)
+- Simulation time too short (increase T)
+- Check if bacteria have magnetic moments enabled
+
+### **If S is always ≈1:**
+- Magnetic field too strong (decrease B)
+- Density too low (particles don't interact)
+- Check for bugs in noise/collision terms
+
+### **If plots look weird:**
+- Check units (mT vs T, seconds vs minutes)
+- Verify φ calculation (area_fraction should be < 1)
+- Ensure consistent random seeds for reproducibility
+
+### **Performance issues:**
+- Use JAX functions for large parameter sweeps
+- Reduce N_values or T for quick tests
+- Save intermediate results to avoid re-running
+
+---
+
+## THEORETICAL BACKGROUND
+
+### **Vicsek Model** (foundation)
+- Simplest model of collective motion
+- Rule: align with average direction of neighbors + noise
+- Shows spontaneous order above critical density
+
+### **Active Matter Theory**
+- Toner-Tu equations: hydrodynamic description of active fluids
+- Predict giant number fluctuations, long-range order
+- Our system: active matter + external field (less studied!)
+
+### **Magnetic Colloids**
+- Janus particles with magnetic caps
+- External field creates torque → alignment
+- Our twist: particles also self-propel (active)
+
+### **Quorum Sensing** (biological context)
+- Bacteria coordinate via chemical signals
+- Density-dependent gene expression
+- Our magnetic control could override native coordination
+
+---
+
+## KEY TAKEAWAYS
+
+1. **Density matters**: Not just field strength—need right φ for each application
+2. **Dynamics matter**: Steady-state S doesn't tell you response time τ
+3. **Growth challenges control**: Exponential population increase is hard to track
+4. **Phase diagrams guide design**: Know where your system operates in (N, B) space
+5. **Applications have different requirements**: One-size-fits-all doesn't work
+
+---
+
+## FURTHER READING
+
+- **Active Matter Reviews**: Marchetti et al., Rev. Mod. Phys. (2013)
+- **Nematic Order**: De Gennes & Prost, "The Physics of Liquid Crystals"
+- **Bacterial Mechanics**: Berg, "E. coli in Motion"
+- **Magnetic Nanoparticles**: Pankhurst et al., J. Phys. D (2003)
+
+---
+
+*Generated for MCATs Biophysics Project*  
+*Author: Michael A. Incorvaia*  
+*Date: November 2025*

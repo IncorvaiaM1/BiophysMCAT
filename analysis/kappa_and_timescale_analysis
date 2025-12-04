@@ -1,0 +1,29 @@
+Information about code: 
+What This Script Does:
+Analysis 1: Alignment Timescale vs Magnetic Field (τ vs B)
+
+Measures how long it takes to achieve order at different field strengths
+Extracts the power law relationship: τ ∝ B^n
+Tests if τ × κ is constant (universality check)
+Answers: "Time at which order is achieved at which magnetic field strength"
+Analysis 2: 2D Phase Diagram (N vs B)
+
+Full phase space showing nematic order S(N, B) as a heatmap
+Shows critical field dependence on particle density
+Identifies operating windows where S > 0.8 (ordered regime)
+Answers: "Phase diagram as function of N and for a constant field strength"
+Analysis 3: Application Windows with Density Labels
+
+Plots nematic order vs area fraction φ at different field strengths
+Overlays application-specific density ranges:
+Drug delivery (high density)
+Skin infections (medium density)
+Biofilms (very high density)
+Microfluidics (controlled systems)
+Answers: "Nematic order as function of density... show different density for drug delivery"
+Key Features:
+- JAX JIT-compiled timescale fitting functions for speed
+- Automatic CSV export of results (timescale_vs_B.csv, phase_diagram_2d.csv)
+- Publication-quality figures with proper labels and thresholds
+- Kappa calculations (κ = 0.01 × B²) explicitly tracked and plotted
+- Universality analysis (τ × κ product) to validate alignment kinetics

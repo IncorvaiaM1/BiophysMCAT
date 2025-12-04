@@ -1,0 +1,134 @@
+MCATs Modules Overview
+
+Purpose
+-------
+This file documents the four major simulation modules in `src/`: `MCATs1.py`, `MCATs2.py`, `MCATs3.py`, and `MCATs4.py`.
+Each module implements variations of a magnetically-controlled active turbulence (MCAT) simulation based on Langevin
+dynamics (position + orientation updates) and the Beppu & Timonen (2024) modeling choices used in this project.
+
+Use this document as a quick reference for which module to use for:
+- interactive examples and plotting: `MCATs1.py`
+- large parameter sweeps and optimized kernels: `MCATs2.py`
+- compact simulation class with optional `verbose` run API: `MCATs3.py`
+- JAX-accelerated simulation with organized output: `MCATs4.py`
+
+Summary by file
+----------------
+
+MCATs1.py
+~~~~~~~~~
+- Purpose: Baseline implementation of the Langevin dynamics MCAT simulation with user-facing examples
+	(field sweep, baseline turbulence, magnetic suppression), plotting utilities, and VMD trajectory export.
+- Key class: `ActiveTurbulenceSimulation`
+	- Initialization parameters: `N` (particle count), `L` (box size, μm), `dt` (timestep, s), `seed`.
+	- Physical parameters stored as attributes: `v0` (self-propulsion speed), `D_r` (rotational diffusion),
+		`D_t` (translational diffusion), `R_align` (alignment range), `omega_align` (alignment strength),
+		`R_rep` and `F_rep` (repulsion), magnetic parameters `B`, `theta_B`, `kappa`.
+	- Magnetic calibration: `kappa = 0.01 * B**2` when `set_magnetic_field()` is called.
+	- Methods:
+		- `calculate_nematic_order()`: S = <cos(2θ)> (nematic order)
+		- `calculate_polar_order()`: polar order for comparison
+		- `calculate_interactions()`: neighbor search (cKDTree) -> computes alignment torque and repulsion forces
+		- `step()`: single Euler–Maruyama integration step for orientation and position
+		- `run(T, save_interval)`: run loop, saves snapshots in `trajectory_history` and order in `order_parameter_history`
+		- `plot_snapshot()`, `plot_order_parameter()`: plotting helpers for snapshots and S(t)
+		- `save_vmd_trajectory()`: export XYZ format for VMD visualization
+	- Examples included: `run_baseline_turbulence()`, `run_magnetic_suppression()`, `run_field_sweep()`
+	- Notes: Good for exploration and figures; computationally straightforward but not optimized for very large sweeps.
+
+MCATs2.py
+~~~~~~~~~
+- Purpose: Optimized parameter-sweep framework. Designed for high-throughput exploration and post-processing.
+- Key components:
+	- JIT-optimized kernels using `numba.jit` (parallel=True) for heavy loops:
+		`compute_alignment_torques_jit`, `compute_repulsion_forces_jit`, `compute_order_parameters_jit`.
+	- `OptimizedActiveTurbulence` class: same physical model but uses JIT kernels inside `step()` to accelerate
+		interactions and order computations. Stores detailed `metrics` time series.
+	- `ParameterSweep` manager: builds parameter grids, runs simulations in parallel with `multiprocessing.Pool`,
+		saves results to HDF5 and JSON, and produces summary plots/CSV.
+	- Analysis helpers: automatic plotting (`_plot_phase_diagram`, `_plot_time_series_comparison`, etc.) and
+		convenience routines to convert results to `pandas.DataFrame`.
+	- Example usage: `example_kappa_sweep()` and `example_multi_parameter_sweep()` to demonstrate grid setups.
+- Notes: Use this file for systematic sweeps, parameter scans, and to generate HDF5 summaries suitable for later
+	analysis. Requires `numba` and sufficient CPU resources for multiprocessing.
+
+MCATs3.py
+~~~~~~~~~
+- Purpose: A slim, well-documented simulation class very similar to `MCATs1.py` but with a slightly different run API
+	that includes a `verbose` argument on `run()` for optional progress printing.
+- Key points: The core simulation design (forces, torques, integration scheme) matches `MCATs1` and `MCATs4`:
+	- `set_magnetic_field(B, theta_B)` updates `kappa = 0.01 * B**2`
+	- `run(T, save_interval, verbose=True)` prints progress when `verbose=True`
+	- `reset()` helper reinitializes random positions and orientations
+- Notes: Use `MCATs3` when you want the simpler API with `verbose` progress statements; the underlying physics
+	and methods are the same as in `MCATs1`.
+
+MCATs4.py
+~~~~~~~~~
+- Purpose: JAX-accelerated version of the simulation. Keeps the same physical model while pushing bottlenecks to
+	JAX for performance gains in vectorized operations and noise generation. Also organizes outputs and focuses on
+	speed-friendly operations.
+- Key changes vs MCATs1/3:
+	- Many small numerical helpers are implemented with `@jax.jit` for fast execution when JAX is available:
+		`jax_calculate_nematic_order`, `jax_magnetic_torque`, `jax_velocity_field`, `jax_angle_normalization`, etc.
+	- Random noise generation uses `jax.random` with a persistent RNG key stored in the instance.
+	- Several array operations are executed via JAX then converted back to NumPy when needed for existing plotting
+		or KD-tree neighbor searches (KD-tree remains SciPy-based; JAX has limited support for KD-tree operations).
+	- `set_magnetic_field()` uses the JAX-compiled field calculation for `kappa`.
+- Notes and limitations:
+	- JAX accelerates vectorized math and noise generation; however neighbor searches (cKDTree) and some parts of the
+		interaction code remain NumPy/SciPy-based, so the performance improvement is incremental but useful for
+		computation-heavy loops.
+	- JAX requires an appropriate environment (GPU/TPU optional) and can increase setup complexity.
+
+Common design / physics summary
+-------------------------------
+- All modules implement the same core stochastic model:
+	- Orientation ODE (Langevin): dθ/dt = −κ sin(θ − θ_B) + ω_align × alignment_term + √(2 D_r) ξ(t)
+	- Position ODE: dr/dt = v0 p_hat + repulsion_force + √(2 D_t) η(t)
+	- Alignment interaction: nematic-style interaction (uses sin(Δθ) terms and neighbor averaging)
+	- Short-range soft repulsion to avoid overlaps
+
+- Nematic order parameter: S = ⟨cos(2θ)⟩ used throughout as the main order metric.
+
+Practical guidance
+------------------
+- Use `MCATs1.py` or `MCATs3.py` for single-run exploration, plotting, and figure generation.
+- Use `MCATs2.py` when you need large parameter sweeps, reproducible HDF5 outputs, and automated analyses.
+- Use `MCATs4.py` if JAX is available and you want faster vectorized operations and noise generation; check that
+	your environment supports JAX before running.
+
+Examples
+--------
+- Run a quick baseline simulation (from `MCATs1`):
+	```python
+	from src.MCATs1 import run_baseline_turbulence
+	sim = run_baseline_turbulence()
+	```
+
+- Run a small parameter sweep (from `MCATs2`):
+	```python
+	from src.MCATs2 import example_kappa_sweep
+	sweep = example_kappa_sweep()
+	```
+
+- Run a JAX-accelerated sim (from `MCATs4`):
+	```python
+	from src.MCATs4 import ActiveTurbulenceSimulation
+	sim = ActiveTurbulenceSimulation(N=500)
+	sim.set_magnetic_field(15.0)
+	sim.run(T=20.0)
+	```
+
+Developer notes
+---------------
+- The kappa calibration (κ = 0.01 × B²) is used consistently across modules; change in a single place when
+	re-calibrating is recommended.
+- Consider standardizing the `run()` signature across implementations (e.g., allow `verbose` everywhere) to make
+	the analysis scripts interoperable without small wrappers.
+- For large-scale sweeps, `MCATs2.ParameterSweep` outputs HDF5 + JSON summaries that downstream analysis scripts
+	(like the kappa/timescale analysis) can ingest directly.
+
+Contact
+-------
+For clarifications or to request a Markdown version of this info, ask and I'll generate it.
