@@ -1,0 +1,287 @@
+================================================================================
+CODEBASE OVERVIEW: MAGNETICALLY CONTROLLED BACTERIAL TURBULENCE (MCAT)
+================================================================================
+
+PHYSICS MODEL
+================================================================================
+
+This codebase simulates "Magnetically Controlled Active Turbulence" (MCAT):
+bacterial suspensions that self-organize into ordered or disordered states
+depending on magnetic field strength.
+
+CORE PHYSICS:
+- Bacteria modeled as self-propelled particles with angular orientation θ
+- Self-propulsion: v₀ = 15 μm/s in direction of θ
+- Rotational diffusion: D_r = 0.5 rad²/s (random reorientation)
+- Nematic alignment: Particles within R_align = 10 μm tend to align with neighbors
+- Magnetic coupling: External field B causes alignment torque τ = κ sin(2θ), where κ = 0.01 × B²
+- Domain: 200 μm × 200 μm box with periodic boundaries
+
+ORDER PARAMETER:
+- S = ⟨cos(2θ)⟩: Measures nematic order (alignment degree)
+- S = 0: Turbulent, particles point random directions
+- S = 1: Fully aligned, all particles point same way
+- S > 0.8: "Ordered" state suitable for applications
+
+APPLICATIONS ENABLED BY ORDER:
+- Drug delivery (high B, high density): Direct cargo to target
+- Infection control (medium B): Create biofilm attack swarms
+- Microfluidic valves (medium-high density): Use order for flow switching
+- Bioreactor mixing (high density): Prevent settling, improve productivity
+- Biosensor swarms (medium B, high density): Coordinate detection
+
+================================================================================
+CODEBASE ARCHITECTURE: From Simulation to Analysis
+================================================================================
+
+1. SRC/MCATS*.PY - SIMULATION ENGINES
+   ────────────────────────────────────
+
+   Purpose: Run Langevin dynamics simulations of bacterial turbulence
+
+   MCATs1.py (BASELINE):
+     • Pure NumPy implementation (no optimization)
+     • Class: ActiveTurbulenceSimulation
+     • Methods: __init__, set_magnetic_field, run, calculate_nematic_order
+     • Key: Straightforward, readable, easy to debug
+     • Use when: Understanding physics, small simulations
+     • Performance: ~1 simulation/minute (N=500)
+
+   MCATs2.py (PARAMETER SWEEP):
+     • Adds Numba JIT compilation for hotspot functions
+     • Adds multiprocessing: run_parallel_sweep() for multiple B values
+     • Adds parameter sweep framework: BFieldSweep class
+     • Key: 2-3x speedup over MCATs1 via Numba
+     • Use when: Sweeping many B values, need moderate parallelism
+     • Performance: ~2-3 simulations/minute per core
+
+   MCATs3.py (SLIM CLASS):
+     • Minimal refactor of MCATs1
+     • Supports verbose=True in run() for per-timestep output
+     • Key: Same physics, slightly cleaner API
+     • Use when: Need verbose diagnostics
+     • Performance: Same as MCATs1 (~1 sim/min)
+
+   MCATs4.py (JAX ACCELERATION + ORGANIZED OUTPUT):
+     • Full JAX JIT compilation: 10 functions wrapped with @jax.jit
+     • Automatic output organization: ensure_mcats_output_dir()
+       - Creates figures/MCATs/, figures/MCATs/analysis/, figures/MCATs/data/
+       - Saves PNG figures and CSV trajectory data by B value
+     • Key: 5-10x speedup via JAX, organized file structure
+     • Use when: Production runs, need fast multiple simulations, want organized outputs
+     • Performance: ~5-10 simulations/minute (N=500)
+
+   WHICH TO USE:
+     - Development/debugging: MCATs1
+     - Parallel parameter sweeps: MCATs2
+     - Verbose diagnostics: MCATs3
+     - Production large-scale analysis: MCATs4
+
+================================================================================
+
+2. SRC/PARAMETERS2.PY - CONFIGURATION & CONSTANTS
+   ──────────────────────────────────────────────
+
+   Purpose: Define all physical constants, simulation parameters, and application windows
+
+   PHYSICAL DICT: Bacterial properties
+     • v0 = 15 μm/s (swimming speed)
+     • diffusion = 0.5 rad²/s (rotational diffusion coefficient)
+     • R_align = 10 μm (alignment interaction range)
+     • kappa_prefactor = 0.01 (magnetic coupling: κ = 0.01 × B²)
+     • Bacterial size: L = 7 μm, R = 0.8 μm
+
+   SIMULATION DICT: Numerical setup
+     • dt = 0.01 s (timestep)
+     • L = 200 μm (box size)
+     • N_default = 500 (default particle count)
+     • seed = 42 (reproducibility)
+
+   MAGNETIC_FIELDS: Predefined sweeps for B (magnetic field) in mT
+     • coarse: [0, 10, 20, 30] (rough survey)
+     • fine: 25 values 0-30 mT (detailed survey)
+     • transition: [5, 7.5, 10, 12.5, 15] (focus on order transition)
+
+   DENSITY_RANGES: N values to test
+     • N_sweep: [100, 200, 500, 1000, 2000] (parameter sweeps)
+     • N_phase_diagram: 9 values from 15 to 2000 (phase diagram)
+     • N_expanded: [100, 500, 1000, 2000, 5000, 10000, 15000, 20000] (large-scale)
+
+   GROWTH DICT: Population growth parameters
+     • Models bacterial doubling time, growth rates at different densities
+
+   APPLICATIONS DICT: Use-case specifications
+     • drug_delivery: φ=0.1-0.2, B_max=50 mT (high field, moderate density)
+     • wound_infection_control: φ=0.05-0.15, B_max=30 mT (medium field, low density)
+     • bioreactor_mixing: φ=0.3-0.5, B_max=30 mT (high density, sustained order)
+     • microfluidic_valve: φ=0.2-0.4, B_max=50 mT (high density, precise control)
+     • biosensor_swarm: φ=0.15-0.35, B_max=40 mT (medium-high density, detection)
+
+   HELPER FUNCTIONS:
+     • cells_per_ml_to_particle_count(density_cells_ml) → N
+     • particle_count_to_area_fraction(N) → φ
+     • calculate_population(t, N0, doubling_time) → N(t)
+
+   KEY INSIGHT: Parameters2 is the "control panel"—change here to adapt simulations
+
+================================================================================
+
+3. ANALYSIS/NEMATIC_VS_DENSITY_TIME.PY - BASIC ORDER PARAMETER ANALYSIS
+   ──────────────────────────────────────────────────────────────────
+
+   Purpose: Fundamental analysis of how nematic order S(t) evolves with particle density
+
+   WHAT IT DOES:
+     1. Run simulations at multiple N values (e.g., 100, 500, 1000, 2000)
+     2. Track nematic order parameter S over time for each N
+     3. Plot S(t) curves showing convergence to equilibrium
+     4. Compare how different densities affect ordering dynamics
+
+   OUTPUTS:
+     • figures1/analysis/nematic_vs_density_time.png: Grid of S(t) plots for each N
+     • Answers: Does order depend on density? How fast do particles organize?
+
+   PYTHON VERSION: nematic_vs_density_time2.py
+     • Same analysis but with JAX JIT optimization (8 functions)
+     • ~5x faster, same physics, same outputs
+     • Use: nematic_vs_density_time2 for production runs
+
+   RESEARCH QUESTION ANSWERED:
+     "How does particle density affect the rate and degree of ordering?"
+
+================================================================================
+
+4. ANALYSIS/KAPPA_AND_TIMESCALE_ANALYSIS.PY - ADVANCED PHASE SPACE EXPLORATION
+   ─────────────────────────────────────────────────────────────────────────
+
+   Purpose: Comprehensive characterization of order-disorder transition and applications
+
+   ANALYSIS 1: ALIGNMENT TIMESCALE vs MAGNETIC FIELD (τ vs B)
+     • Measure time τ for order to reach 80% of equilibrium vs field strength B
+     • Fits power law: τ ∝ B^n
+     • Tests universality: does τ × κ = constant? (predicts τ ~ κ⁻¹ scaling)
+     • Outputs: Timescale_vs_B.png (4-panel figure), timescale_vs_B.csv
+
+   ANALYSIS 2: 2D PHASE DIAGRAM (N vs B → S)
+     • Sweeps (N, B) parameter space, measures final order S
+     • Contour plot showing S(N, B) heatmap
+     • Identifies critical field B_c(N) where order emerges
+     • Tests: How does particle density shift the order-disorder transition?
+     • Outputs: phase_diagram_2d.png, phase_diagram_2d.csv
+
+   ANALYSIS 3: APPLICATION WINDOWS OVERLAY
+     • Plots S vs φ (area fraction) at multiple B values
+     • Overlays application use-case windows (drug delivery, bioreactors, etc.)
+     • Shows which (φ, B) combinations satisfy application constraints
+     • Key insight: Reveals if applications operate in ordered or chaotic regime
+     • Outputs: application_windows.png
+
+   JAX OPTIMIZATION: 3 helper functions wrapped with @jax.jit
+
+   RESEARCH QUESTIONS ANSWERED:
+     • "How long does alignment take at different magnetic fields?"
+     • "Can we predict order achievement from B alone (universality)?"
+     • "What is the full (N, B) → S phase diagram?"
+     • "Which applications operate in ordered vs turbulent regimes?"
+
+================================================================================
+
+5. SCRIPTS/RUN_ALL_ANALYSES.PY - ORCHESTRATOR (ORIGINAL)
+   ──────────────────────────────────────────────────
+
+   Purpose: Master control script that runs all analyses in sequence
+
+   WHAT IT DOES:
+     1. Imports all analysis modules (nematic_vs_density_time, kappa_and_timescale)
+     2. Calls main() from each analysis module in logical order
+     3. Coordinates output directories
+     4. Generates comprehensive figure suite: timescale, phase diagram, applications
+
+   ORCHESTRATION:
+     • Detects which MCAT module is available (MCATs1-4)
+     • Chooses optimal version (prefers faster versions if available)
+     • Runs all analyses with standard parameters
+     • Saves all outputs to figures/ and data/ directories
+
+   PYTHON VERSION: run_all_analyses2.py
+     • JAX-optimized version (8 JIT functions)
+     • Same orchestration, faster execution
+     • Use: run_all_analyses2 for production
+
+   TYPICAL WORKFLOW:
+     python scripts/run_all_analyses2.py
+     → Runs 20+ simulations across all (N, B) combinations
+     → Generates 3 major PNG figures + 2 CSV files
+     → Execution time: ~1-2 hours (depending on hardware)
+
+================================================================================
+
+DATA FLOW & INTEGRATION
+================================================================================
+
+TYPICAL RESEARCH WORKFLOW:
+
+  1. Define parameters → parameters2.py (set N values, B range, applications)
+  
+  2. Choose simulation engine → MCATs4.py (fastest production version)
+  
+  3. Run orchestrator → run_all_analyses2.py
+       ├─ Calls nematic_vs_density_time2.py
+       │  └─ Shows S(t) at various N
+       └─ Calls kappa_and_timescale_analysis.py
+          ├─ Analysis 1: τ(B) timescale curves
+          ├─ Analysis 2: (N, B) phase diagram
+          └─ Analysis 3: Application window coverage
+  
+  4. Inspect outputs → figures1/analysis/
+       • timescale_vs_B.png: Does τ ~ κ⁻¹?
+       • phase_diagram_2d.png: Where is order achieved?
+       • application_windows.png: Which apps work best?
+  
+  5. Iterate → Modify parameters2.py (expand density, change B range, etc.)
+
+================================================================================
+
+KEY FILES AT A GLANCE
+================================================================================
+
+SIMULATION (SRC/):
+  MCATs1.py             → Baseline, readable, ~1 sim/min
+  MCATs2.py             → Numba + multiprocessing, ~2-3 sim/min
+  MCATs3.py             → Slim, verbose diagnostics, ~1 sim/min
+  MCATs4.py             → JAX accelerated + organized output, ~5-10 sim/min ⭐
+  parameters2.py        → All constants, sweeps, applications ⭐
+
+ANALYSIS (ANALYSIS/):
+  nematic_vs_density_time.py    → How S(t) depends on N
+  nematic_vs_density_time2.py   → JAX version (faster) ⭐
+  kappa_and_timescale_analysis.py  → τ(B), 2D phase diagram, app windows ⭐
+
+ORCHESTRATION (SCRIPTS/):
+  run_all_analyses.py    → Master control (original)
+  run_all_analyses2.py   → JAX version (faster) ⭐
+
+================================================================================
+
+PURPOSE SUMMARY
+================================================================================
+
+This codebase answers the central question:
+
+  "Under what conditions (magnetic field B, particle density N) does a
+   bacterial suspension self-organize into nematic order, and can this
+   control be exploited for practical biotechnology applications?"
+
+SPECIFIC DELIVERABLES:
+
+  ✓ Timescale characterization: How fast does order occur? (τ vs B)
+  ✓ Phase diagram: Complete (N, B) → order mapping
+  ✓ Application validation: Which use cases fall in ordered regimes?
+  ✓ Universality tests: Can we predict order from B alone?
+  ✓ High-density exploration: Extends to φ = 2.5 (N=20000)
+
+The modular design (MCATs1-4, multiple analyses) enables both rapid exploration
+and production-grade computation, supporting the full research lifecycle from
+hypothesis to manuscript figures.
+
+================================================================================
