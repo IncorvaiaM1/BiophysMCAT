@@ -25,11 +25,11 @@ from functools import partial
 
 # Create output directories
 DIRS = [
-    'data1',
-    'figures1/MCATs',
-    'figures1/results',
-    'figures1/analysis',
-    'figures1/applications',
+    'data2',
+    'figures2/MCATs',
+    'figures2/results',
+    'figures2/analysis',
+    'figures2/applications',
 ]
 
 for d in DIRS:

@@ -3,7 +3,7 @@
 
 ---
 
-## 🎯 PURPOSE
+##  PURPOSE
 
 This is the **orchestration script**—the conductor of your entire simulation pipeline. Instead of running individual analysis scripts manually, this master script:
 
@@ -17,7 +17,7 @@ This is the **orchestration script**—the conductor of your entire simulation p
 
 ---
 
-## 📁 DIRECTORY STRUCTURE CREATED
+##  DIRECTORY STRUCTURE CREATED
 
 ```
 project/
@@ -56,7 +56,7 @@ project/
 
 ---
 
-## 🔄 WORKFLOW: THE SIX ANALYSIS STEPS
+## WORKFLOW: THE SIX ANALYSIS STEPS
 
 ### **STEP 1: Basic Simulation Examples**
 **Runtime**: ~5 minutes  
@@ -166,7 +166,7 @@ This internally executes three analyses:
 
 ---
 
-## 🚀 JAX JIT OPTIMIZATION (Version 2 Only)
+## JAX JIT OPTIMIZATION (Version 2 Only)
 
 ### **What is JAX?**
 JAX is Google's numerical computing library that combines:
@@ -273,7 +273,7 @@ S(t) = S_final × (1 - exp(-t/τ))
 
 ---
 
-## 🎮 USAGE PATTERNS
+## USAGE PATTERNS
 
 ### **Pattern 1: Run Everything (Full Pipeline)**
 ```bash
@@ -303,7 +303,7 @@ If script crashes or you press Ctrl+C:
 
 ---
 
-## 📊 OUTPUT INTERPRETATION
+##  OUTPUT INTERPRETATION
 
 ### **Console Output Format**
 
@@ -393,7 +393,7 @@ Generated files:
 
 ---
 
-## 🐛 ERROR HANDLING
+##  ERROR HANDLING
 
 ### **Graceful Interruption**
 ```python
@@ -439,7 +439,7 @@ except ImportError:
 
 ---
 
-## ⚙️ CONFIGURATION & CUSTOMIZATION
+##  CONFIGURATION & CUSTOMIZATION
 
 ### **Timing Estimates**
 Update if you find different runtimes:
@@ -468,7 +468,7 @@ Comment out expensive analyses during development:
 
 ---
 
-## 🧪 TESTING STRATEGY
+##  TESTING STRATEGY
 
 ### **Quick Test Run**
 Modify analysis modules to use smaller parameters:
@@ -498,7 +498,7 @@ if '--dry-run' in sys.argv:
 
 ---
 
-## 🔬 SCIENTIFIC WORKFLOW INTEGRATION
+##  SCIENTIFIC WORKFLOW INTEGRATION
 
 ### **Typical Research Cycle**
 
@@ -542,7 +542,7 @@ rsync -av data/*.csv backup/
 
 ---
 
-## 🎯 KEY DESIGN PRINCIPLES
+##  KEY DESIGN PRINCIPLES
 
 ### **1. Modularity**
 Each step is independent function—can be run, tested, modified separately
@@ -561,7 +561,7 @@ Easy to add new analyses (Step 7, Step 8...) without breaking existing code
 
 ---
 
-## 💡 ADVANCED FEATURES (Version 2 Only)
+##  ADVANCED FEATURES (Version 2 Only)
 
 ### **JAX Warmup**
 ```python
@@ -588,7 +588,7 @@ print(f"  Run started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 ---
 
-## 🎓 LEARNING OUTCOMES
+##  LEARNING OUTCOMES
 
 Running this script teaches:
 
@@ -600,7 +600,7 @@ Running this script teaches:
 
 ---
 
-## 📚 COMPARISON: Version 1 vs Version 2
+##  COMPARISON: Version 1 vs Version 2
 
 | Feature | Version 1 | Version 2 (JAX) |
 |---------|-----------|-----------------|

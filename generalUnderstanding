@@ -249,17 +249,17 @@ SIMULATION (SRC/):
   MCATs1.py             → Baseline, readable, ~1 sim/min
   MCATs2.py             → Numba + multiprocessing, ~2-3 sim/min
   MCATs3.py             → Slim, verbose diagnostics, ~1 sim/min
-  MCATs4.py             → JAX accelerated + organized output, ~5-10 sim/min ⭐
-  parameters2.py        → All constants, sweeps, applications ⭐
+  MCATs4.py             → JAX accelerated + organized output, ~5-10 sim/min 
+  parameters2.py        → All constants, sweeps, applications 
 
 ANALYSIS (ANALYSIS/):
   nematic_vs_density_time.py    → How S(t) depends on N
-  nematic_vs_density_time2.py   → JAX version (faster) ⭐
-  kappa_and_timescale_analysis.py  → τ(B), 2D phase diagram, app windows ⭐
+  nematic_vs_density_time2.py   → JAX version (faster) 
+  kappa_and_timescale_analysis.py  → τ(B), 2D phase diagram, app windows 
 
 ORCHESTRATION (SCRIPTS/):
   run_all_analyses.py    → Master control (original)
-  run_all_analyses2.py   → JAX version (faster) ⭐
+  run_all_analyses2.py   → JAX version (faster) 
 
 ================================================================================
 
