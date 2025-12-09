@@ -3,6 +3,7 @@ Magnetically Controlled Active Turbulence
 # Magnetically Controlled Bacterial Turbulence
 
 **Authors**: Michael A. Incorvaia 
+
 **Institution**: Georgia Tech, College of Sciences - Physics  
 **Date**: November 2025
 
